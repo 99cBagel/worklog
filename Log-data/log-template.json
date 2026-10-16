@@ -1,0 +1,13 @@
+{
+  "phone": "REPLACE_WITH_VERIFIED_PHONE",
+  "project_id": "ROOM-001",
+  "record": {
+    "status": "pending",
+    "created_at": null
+  },
+  "completion": {
+    "status": "pending",
+    "review": null
+  },
+  "photos": []
+}
