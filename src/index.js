@@ -1,4 +1,5 @@
 import { submitAndEvaluate } from "./submission.js";
+import { runPilotEvaluation } from "./pilot.js";
 // WorkLog MCP: public discovery, no Cloudflare Access or user-supplied API key.
 // Write operations remain disabled until task-scoped authorization is implemented.
 const HEADERS = {
@@ -43,6 +44,10 @@ export default {
     const url = new URL(request.url);
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: HEADERS });
     if (url.pathname === "/health" && request.method === "GET") return json({ ok: true, service: "worklog-mcp", version: "0.1.0", upload_enabled: false });
+    if (url.pathname === "/pilot/evaluate" && request.method === "POST") {
+      try { return json(await runPilotEvaluation(env)); }
+      catch { return json({ status: "manual_review", error: "Pilot evaluation failed; check Workers AI model and R2 example files" }, 503); }
+    }
     if (url.pathname === "/submit" && request.method === "POST") {
       if (!env.WORKLOG_TOKEN_SECRET) return json({ error: "Task authorization is not configured" }, 503);
       const length = Number(request.headers.get("content-length") || 0);
