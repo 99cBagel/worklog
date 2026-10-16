@@ -1,0 +1,35 @@
+name: Sync WorkLog Reference Data to R2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'reference/**'
+      - 'scripts/sync-r2.sh'
+      - '.github/workflows/sync-r2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: worklog-r2-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Wrangler
+        run: npm install --no-package-lock
+      - name: Sync reference files to R2
+        run: bash scripts/sync-r2.sh
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.G_Deploy2026 }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.G_account_id }}
