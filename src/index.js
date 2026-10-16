@@ -1,3 +1,4 @@
+import { evaluateCompletion } from "./analysis/evaluate.js";
 // WorkLog MCP: public discovery, no Cloudflare Access or user-supplied API key.
 // Write operations remain disabled until task-scoped authorization is implemented.
 const HEADERS = {
@@ -33,6 +34,7 @@ async function callTool(name, args, env) {
     try { return result({ project_id: id, criteria: JSON.parse(await object.text()) }); }
     catch { return result({ error: "Task data is invalid" }, true); }
   }
+  if (name === "log_evaluate") return result({ status: "authorization_required", engine: "Cloudflare Workers AI", message: "Evaluation engine is implemented but cannot run until task-scoped authorization and approved photo submission are implemented. Never provide private R2 keys through public MCP." }, true);
   if (tools.some(t => t.name === name)) return result({ status: "not_implemented", message: "Protected workflow disabled until task-scoped authorization, privacy preview and consent are implemented. Do not provide a phone number or upload a photo." }, true);
   return result({ error: "Unknown tool" }, true);
 }
