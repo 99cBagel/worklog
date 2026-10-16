@@ -1,0 +1,19 @@
+{
+  "project_id": "ROOM-001",
+  "title": "Privacy curtain and back support",
+  "public_demo": true,
+  "criteria": [
+    {
+      "id": "privacy_curtain",
+      "label": "Privacy curtain",
+      "requirement": "Visible privacy curtain covers the window sufficiently to provide privacy."
+    },
+    {
+      "id": "back_support",
+      "label": "Back support",
+      "requirement": "Seating has a visible, usable backrest."
+    }
+  ],
+  "review_policy": "Evaluate each criterion separately; do not rely on global visual similarity. Unclear evidence requires manual review.",
+  "reference_image_status": "pending"
+}
