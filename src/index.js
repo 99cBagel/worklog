@@ -28,8 +28,8 @@ async function callTool(name, args, env) {
     const id = args?.project_id;
     if (typeof id !== "string" || !/^[A-Za-z0-9_-]{1,80}$/.test(id)) return result({ error: "Invalid project_id" }, true);
     // Only public demo task data under public-tasks/ can be read anonymously.
-    const object = await env.LOG_DATA.get(`public-tasks/${id}/criteria.json`);
-    if (!object) return result({ error: "Public task not found" }, true);
+    const object = await env.LOG_DATA.get("Example.json");
+    if (!object || id !== "ROOM-001") return result({ error: "Public task not found" }, true);
     try { return result({ project_id: id, criteria: JSON.parse(await object.text()) }); }
     catch { return result({ error: "Task data is invalid" }, true); }
   }
