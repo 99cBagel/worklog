@@ -1,0 +1,9 @@
+{
+  "name": "log-worker",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-16",
+  "ai": { "binding": "AI" },
+  "r2_buckets": [
+    { "binding": "LOG_DATA", "bucket_name": "log-data" }
+  ]
+}
