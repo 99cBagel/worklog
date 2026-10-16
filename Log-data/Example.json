@@ -1,0 +1,16 @@
+{
+  "example_image": "Example.jpg",
+  "project_id": "ROOM-001",
+  "criteria": [
+    {
+      "id": "privacy_curtain",
+      "requirement": "Curtain provides visual privacy at the window"
+    },
+    {
+      "id": "back_support",
+      "requirement": "Chair has a visible usable backrest"
+    }
+  ],
+  "review_policy": "Check each item individually; unclear evidence requires manual review.",
+  "image_status": "awaiting_upload"
+}
