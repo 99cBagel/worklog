@@ -1,4 +1,4 @@
-import { evaluateCompletion } from "./analysis/evaluate.js";
+import { submitAndEvaluate } from "./submission.js";
 // WorkLog MCP: public discovery, no Cloudflare Access or user-supplied API key.
 // Write operations remain disabled until task-scoped authorization is implemented.
 const HEADERS = {
@@ -43,6 +43,15 @@ export default {
     const url = new URL(request.url);
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: HEADERS });
     if (url.pathname === "/health" && request.method === "GET") return json({ ok: true, service: "worklog-mcp", version: "0.1.0", upload_enabled: false });
+    if (url.pathname === "/submit" && request.method === "POST") {
+      if (!env.WORKLOG_TOKEN_SECRET) return json({ error: "Task authorization is not configured" }, 503);
+      const length = Number(request.headers.get("content-length") || 0);
+      if (length > 5_700_000) return json({ error: "Payload too large" }, 413);
+      let body;
+      try { body = await request.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
+      try { return json(await submitAndEvaluate(env, body)); }
+      catch { return json({ error: "Submission rejected or failed" }, 403); }
+    }
     if (url.pathname !== "/mcp") return json({ error: "Not found" }, 404);
     if (request.method === "GET") return text("SSE stream not available; use MCP Streamable HTTP POST.", 405);
     if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
