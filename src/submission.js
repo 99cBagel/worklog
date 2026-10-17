@@ -3,28 +3,37 @@
 // Token format: base64url(JSON {project_id,phone,exp}) + "." + base64url(HMAC-SHA256).
 import { evaluateCompletion } from "./analysis/evaluate.js";
 const MAX_BYTES = 4 * 1024 * 1024;
-const utf8 = new TextEncoder();
-function base64url(bytes) {
-  let str = ""; for (let i = 0; i < bytes.length; i += 8192) str += String.fromCharCode(...bytes.subarray(i, i + 8192));
-  return btoa(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+// Random task-scoped capabilities support the open pilot without a signing secret.
+// This is self-registration, not verified identity or OTP authentication.
+export async function identify(env, args) {
+  if (args.project_id !== "ROOM-001") throw Error("Unknown project");
+  const phone = args.phone;
+  if (phone !== undefined && !/^09\d{8}$/.test(phone)) throw Error("Invalid phone format");
+  const token = crypto.randomUUID() + crypto.randomUUID();
+  const identity = { project_id: args.project_id, phone, participant_id: crypto.randomUUID(), exp: Math.floor(Date.now()/1000)+3600 };
+  await env.LOG_DATA.put("sessions/" + token, JSON.stringify(identity));
+  return { status: "registered", mode: "open_pilot", identity_verified: false, authorization: token, project_id: identity.project_id, expires_at: new Date(identity.exp*1000).toISOString(), next_tool: "log_prepare_upload" };
 }
-function fromBase64url(value) {
-  if (!/^[A-Za-z0-9_-]+$/.test(value)) throw Error("Invalid token");
-  const raw = atob(value.replace(/-/g, "+").replace(/_/g, "/"));
-  return Uint8Array.from(raw, c => c.charCodeAt(0));
-}
-async function authorize(env, token, projectId) {
-  if (!env.WORKLOG_TOKEN_SECRET || typeof token !== "string" || token.length > 2048) throw Error("Authorization unavailable");
-  const parts = token.split(".");
-  if (parts.length !== 2) throw Error("Invalid authorization");
-  const key = await crypto.subtle.importKey("raw", utf8.encode(env.WORKLOG_TOKEN_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["verify"]);
-  const ok = await crypto.subtle.verify("HMAC", key, fromBase64url(parts[1]), utf8.encode(parts[0]));
-  if (!ok) throw Error("Invalid authorization");
-  const data = JSON.parse(new TextDecoder().decode(fromBase64url(parts[0])));
-  if (data.project_id !== projectId || !/^09\d{8}$/.test(data.phone) ||
-      !Number.isSafeInteger(data.exp) || data.exp <= Date.now() / 1000 ||
-      data.exp > Date.now() / 1000 + 86400) throw Error("Authorization expired or wrong task");
+export async function authorize(env, token, projectId) {
+  if (typeof token !== "string" || !/^[a-f0-9-]{72}$/.test(token)) throw Error("Invalid session");
+  const obj = await env.LOG_DATA.get("sessions/"+token);
+  const data = obj && await obj.json();
+  if (!data || data.project_id !== projectId || data.exp <= Date.now()/1000) throw Error("Session expired or wrong task");
   return data;
+}
+export async function prepareUpload(env, args) {
+  await authorize(env, args.authorization, args.project_id);
+  return { status: "ready", max_bytes: MAX_BYTES, content_types: ["image/jpeg", "image/png"], next_tool: "log_submit_photo", requirements: ["Export a locally masked photo with metadata removed", "Preview the exported photo", "Obtain explicit consent; set consent and privacy_processed to true"] };
+}
+export async function readEvaluation(env, args) {
+  const identity = await authorize(env, args.authorization, args.project_id);
+  const key = (identity.phone || identity.participant_id) + "-log.json";
+  const obj = await env.LOG_DATA.get(key);
+  if (!obj) return { status: "awaiting_submission", next_tool: "log_submit_photo" };
+  const record = await obj.json();
+  // Scope records to this session, including when a phone is reused.
+  if (record.participant_id !== identity.participant_id) return { status: "awaiting_submission", next_tool: "log_submit_photo" };
+  return { status: record.completion.status, evaluation: record.completion.evaluation };
 }
 export async function submitAndEvaluate(env, args) {
   const { project_id, authorization, photo_base64, consent, privacy_processed } = args || {};
@@ -40,16 +49,17 @@ export async function submitAndEvaluate(env, args) {
   const png = bytes.slice(0, 8).every((v, i) => v === [137,80,78,71,13,10,26,10][i]);
   if (!jpeg && !png) throw Error("Only JPEG or PNG accepted");
   const stamp = new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14);
-  const photoKey = identity.phone + "結案照片" + stamp + (jpeg ? ".jpg" : ".png");
+  const photoKey = (identity.phone || identity.participant_id) + "結案照片" + stamp + "-" + crypto.randomUUID() + (jpeg ? ".jpg" : ".png");
   // Data is provided only after user consent; photo bytes never go to GitHub.
   await env.LOG_DATA.put(photoKey, bytes, { httpMetadata: { contentType: jpeg ? "image/jpeg" : "image/png" } });
   let evaluation;
   try { evaluation = await evaluateCompletion(env, { photoKey, projectId: project_id }); }
   catch (error) { evaluation = { status: "manual_review", summary: "Automated evaluation unavailable; human review required" }; }
-  const logKey = identity.phone + "-log.json";
-  const record = { phone: identity.phone, project_id, record: { updated_at: new Date().toISOString() },
+  const logKey = (identity.phone || identity.participant_id) + "-log.json";
+  const record = { participant_id: identity.participant_id, phone: identity.phone, project_id, record: { updated_at: new Date().toISOString() },
     completion: { status: evaluation.status, evaluation, consent_confirmed: true, privacy_processed_attested: true },
     photos: [photoKey] };
   await env.LOG_DATA.put(logKey, JSON.stringify(record, null, 2), { httpMetadata: { contentType: "application/json" } });
   return { status: evaluation.status, photo_key: photoKey, log_key: logKey, evaluation };
 }
+

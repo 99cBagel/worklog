@@ -1,7 +1,7 @@
-import { submitAndEvaluate } from "./submission.js";
+import { identify, prepareUpload, readEvaluation, submitAndEvaluate } from "./submission.js";
 import { runPilotEvaluation } from "./pilot.js";
 // WorkLog MCP: public discovery, no Cloudflare Access or user-supplied API key.
-// Write operations remain disabled until task-scoped authorization is implemented.
+// Open pilot uses expiring task-scoped sessions and explicit upload consent.
 const HEADERS = {
   "content-type": "application/json; charset=utf-8",
   "cache-control": "no-store",
@@ -16,10 +16,12 @@ const result = (value, isError = false) => ({ content: [{ type: "text", text: JS
 const tools = [
   { name: "log_get_task", description: "Read non-sensitive task criteria and reference metadata by project ID. Never expose private task or participant information.", inputSchema: { type: "object", properties: { project_id: { type: "string", maxLength: 80 } }, required: ["project_id"], additionalProperties: false } },
   { name: "log_privacy_guide", description: "Guide the agent to redact faces and personal information locally BEFORE upload, preview the edited result, and obtain explicit approval.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
-  { name: "log_identify", description: "Explain how phone and project verification will work. Authentication is not yet enabled; do not submit personal data.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
-  { name: "log_prepare_upload", description: "Not yet enabled: requires verified task authorization and explicit user approval.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
-  { name: "log_submit_photo", description: "Not yet enabled: never accept raw or unapproved photos.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
-  { name: "log_evaluate", description: "Not yet enabled: requires an approved submission and a validated vision model.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  ...[
+    ["log_identify", "Register for open pilot; self-declared identity, no OTP or API key. Phone optional.", { project_id: { type: "string" }, phone: { type: "string", pattern: "^09[0-9]{8}$" } }, ["project_id"]],
+    ["log_prepare_upload", "Get upload requirements. Mask locally, remove metadata, preview and get consent before submission.", {}, []],
+    ["log_submit_photo", "Upload an approved privacy-processed JPEG/PNG and evaluate with Cloudflare Workers AI.", { photo_base64: { type: "string", maxLength: 5592408 }, consent: { const: true }, privacy_processed: { const: true } }, ["photo_base64", "consent", "privacy_processed"]],
+    ["log_evaluate", "Retrieve the evaluation for this pilot session's submitted photo. Submit first to run AI.", {}, []]
+  ].map(([name, description, properties, required]) => ({ name, description, inputSchema: { type: "object", properties: { ...properties, ...(name === "log_identify" ? {} : { project_id: { type: "string" }, authorization: { type: "string" } }) }, required: [...required, ...(name === "log_identify" ? [] : ["project_id", "authorization"])], additionalProperties: false } }))
 ];
 async function callTool(name, args, env) {
   if (name === "log_privacy_guide") return result({
@@ -35,21 +37,23 @@ async function callTool(name, args, env) {
     try { return result({ project_id: id, criteria: JSON.parse(await object.text()) }); }
     catch { return result({ error: "Task data is invalid" }, true); }
   }
-  if (name === "log_evaluate") return result({ status: "authorization_required", engine: "Cloudflare Workers AI", message: "Evaluation engine is implemented but cannot run until task-scoped authorization and approved photo submission are implemented. Never provide private R2 keys through public MCP." }, true);
-  if (tools.some(t => t.name === name)) return result({ status: "not_implemented", message: "Protected workflow disabled until task-scoped authorization, privacy preview and consent are implemented. Do not provide a phone number or upload a photo." }, true);
+  const handlers = { log_identify: identify, log_prepare_upload: prepareUpload, log_submit_photo: submitAndEvaluate, log_evaluate: readEvaluation };
+  if (handlers[name]) {
+    try { return result(await handlers[name](env, args)); }
+    catch (error) { return result({ status: "rejected", message: error.message }, true); }
+  }
   return result({ error: "Unknown tool" }, true);
 }
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: HEADERS });
-    if (url.pathname === "/health" && request.method === "GET") return json({ ok: true, service: "worklog-mcp", version: "0.1.0", upload_enabled: false });
+    if (url.pathname === "/health" && request.method === "GET") return json({ ok: true, service: "worklog-mcp", version: "0.2.0", upload_enabled: true, mode: "open_pilot", identity_verified: false });
     if (url.pathname === "/pilot/evaluate" && request.method === "POST") {
       try { return json(await runPilotEvaluation(env)); }
       catch { return json({ status: "manual_review", error: "Pilot evaluation failed; check Workers AI model and R2 example files" }, 503); }
     }
     if (url.pathname === "/submit" && request.method === "POST") {
-      if (!env.WORKLOG_TOKEN_SECRET) return json({ error: "Task authorization is not configured" }, 503);
       const length = Number(request.headers.get("content-length") || 0);
       if (length > 5_700_000) return json({ error: "Payload too large" }, 413);
       let body;
@@ -61,7 +65,7 @@ export default {
     if (request.method === "GET") return text("SSE stream not available; use MCP Streamable HTTP POST.", 405);
     if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
     const len = Number(request.headers.get("content-length") || 0);
-    if (len > 65536) return json({ error: "Request too large" }, 413);
+    if (len > 5_700_000) return json({ error: "Request too large" }, 413);
     let body;
     try { body = await request.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
     if (!body || Array.isArray(body) || body.jsonrpc !== "2.0" || typeof body.method !== "string") return json({ jsonrpc: "2.0", id: body?.id ?? null, error: { code: -32600, message: "Invalid request" } }, 400);
@@ -69,7 +73,7 @@ export default {
     const ok = (value) => json({ jsonrpc: "2.0", id: body.id, result: value });
     const err = (code, message) => json({ jsonrpc: "2.0", id: body.id, error: { code, message } });
     switch (body.method) {
-      case "initialize": return ok({ protocolVersion: "2025-03-26", capabilities: { tools: { listChanged: false } }, serverInfo: { name: "worklog-mcp", version: "0.1.0" } });
+      case "initialize": return ok({ protocolVersion: "2025-03-26", capabilities: { tools: { listChanged: false } }, serverInfo: { name: "worklog-mcp", version: "0.2.0" } });
       case "ping": return ok({});
       case "tools/list": return ok({ tools });
       case "tools/call": {
@@ -82,3 +86,4 @@ export default {
     }
   }
 };
+

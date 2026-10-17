@@ -1,22 +1,13 @@
-# WorkLog MCP
+# WorkLog MCP open pilot
 
-Agent-independent social-work photo completion toolkit on Cloudflare Workers.
+Version 0.2.0. Public MCP at `/mcp`; no API key, OTP, or signing secret required.
 
-## Endpoints
-- `GET /health`: health status
-- `POST /mcp`: MCP Streamable HTTP JSON-RPC endpoint (no Cloudflare Access or user-supplied API key)
+1. `log_get_task` with `project_id: ROOM-001`.
+2. `log_identify` with project_id and optional phone. Returns a one-hour authorization capability. Registration is self-declared, not verified identity. Keep the capability private.
+3. `log_prepare_upload` with project_id and authorization. Mask locally, remove metadata, preview the final export and obtain explicit consent.
+4. `log_submit_photo` with project_id, authorization, photo_base64, consent:true and privacy_processed:true. Accepts JPEG/PNG up to 4 MiB. Saves to private R2 and runs Workers AI.
+5. `log_evaluate` with project_id and authorization retrieves this session's result. AI failures return manual_review.
 
-## Tools
-- `log_get_task`: read public demo criteria from R2 `public-tasks/{project_id}/criteria.json`
-- `log_privacy_guide`: local masking and consent instructions
-- `log_identify`, `log_prepare_upload`, `log_submit_photo`, `log_evaluate`: disabled placeholders pending secure implementation
+R2 requires Example.json and Example.jpg. Missing reference photo prevents AI assessment; submissions remain available for human review. Phone is optional; without it filenames use a random participant ID. The server relies on the uploader's privacy-processing attestation.
 
-**Privacy:** Do not send personal phone numbers or original photos to this MVP. Public MCP discovery does not authorize private record access. Production requires OTP/task-scoped authorization, rate limits, browser-side masking preview, explicit consent and audited R2 writes.
-
-## Setup
-1. Create Cloudflare R2 bucket `log-data` and enable Workers AI.
-2. Configure GitHub Actions secrets `G_Deploy2026` and `G_account_id`.
-3. Push to `main` to deploy through GitHub Actions.
-4. Test `/health` and MCP `initialize` / `tools/list`.
-
-The GitHub deployment token is for CI only; social workers never provide it.
+GitHub Actions deploys main using G_Deploy2026 and G_account_id. Worker name remains log-worker. `npm run check` runs syntax and workflow tests.
