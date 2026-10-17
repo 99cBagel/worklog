@@ -23,7 +23,7 @@ export async function authorize(env, token, projectId) {
 }
 export async function prepareUpload(env, args) {
   await authorize(env, args.authorization, args.project_id);
-  return { status: "ready", max_bytes: MAX_BYTES, content_types: ["image/jpeg", "image/png"], next_tool: "log_submit_photo", requirements: ["Export a locally masked photo with metadata removed", "Preview the exported photo", "Obtain explicit consent; set consent and privacy_processed to true"] };
+  return { status: "ready", max_bytes: MAX_BYTES, content_types: ["image/jpeg", "image/png"], next_tool: "log_submit_photo", requirements: ["Use /form for local Gaussian blur, or opaque cover for readable personal text; export without metadata", "Preview the exported photo", "Obtain explicit consent; set consent and privacy_processed to true"] };
 }
 export async function readEvaluation(env, args) {
   const identity = await authorize(env, args.authorization, args.project_id);

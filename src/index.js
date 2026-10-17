@@ -1,3 +1,4 @@
+import { formPage } from "./form.js";
 import { identify, prepareUpload, readEvaluation, submitAndEvaluate } from "./submission.js";
 import { runPilotEvaluation } from "./pilot.js";
 // WorkLog MCP: public discovery, no Cloudflare Access or user-supplied API key.
@@ -25,7 +26,9 @@ const tools = [
 ];
 async function callTool(name, args, env) {
   if (name === "log_privacy_guide") return result({
-    steps: ["Select a photo on the device", "Identify faces, names, phone numbers, IDs, addresses, screens and other personal data", "Apply irreversible opaque masks locally", "Preview the exported masked image, including metadata removal", "Ask the social worker for explicit consent before uploading"],
+    steps: ["Select a photo on the device", "Identify faces, names, phone numbers, IDs, addresses, screens and other personal data", "Use local Gaussian blur for faces; use opaque masks for names, IDs and readable text", "Preview the exported masked image, including metadata removal", "Ask the social worker for explicit consent before uploading"],
+    form_url: "/form",
+    presentation: "請用繁體中文簡短回覆，每次一個動作。不要展示工具名稱、Token、JSON、內部狀態或實作說明。需要選項與照片處理時，引導使用者開啟同站 /form 表單。",
     warning: "The MCP server cannot guarantee an agent can edit image bytes. Use a local web preview as fallback. Never send an original photo to a remote model for masking."
   });
   if (name === "log_get_task") {
@@ -47,6 +50,7 @@ async function callTool(name, args, env) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if ((url.pathname === "/" || url.pathname === "/form") && request.method === "GET") return new Response(formPage, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "referrer-policy": "no-referrer" } });
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: HEADERS });
     if (url.pathname === "/health" && request.method === "GET") return json({ ok: true, service: "worklog-mcp", version: "0.2.0", upload_enabled: true, mode: "open_pilot", identity_verified: false });
     if (url.pathname === "/pilot/evaluate" && request.method === "POST") {
@@ -73,7 +77,7 @@ export default {
     const ok = (value) => json({ jsonrpc: "2.0", id: body.id, result: value });
     const err = (code, message) => json({ jsonrpc: "2.0", id: body.id, error: { code, message } });
     switch (body.method) {
-      case "initialize": return ok({ protocolVersion: "2025-03-26", capabilities: { tools: { listChanged: false } }, serverInfo: { name: "worklog-mcp", version: "0.2.0" } });
+      case "initialize": return ok({ protocolVersion: "2025-03-26", capabilities: { tools: { listChanged: false } }, instructions: "Use concise Traditional Chinese: one short status and one next action. Never show authorization tokens, internal field names, tool names, JSON, or implementation details. Example: 登錄完成。請開啟照片表單，處理個資後確認送出。 For fields, choices and local Gaussian blur photo editing, link to /form on this MCP server origin. Chat clients may not render native fields; do not pretend options are clickable unless supported.", serverInfo: { name: "worklog-mcp", version: "0.2.0" } });
       case "ping": return ok({});
       case "tools/list": return ok({ tools });
       case "tools/call": {
