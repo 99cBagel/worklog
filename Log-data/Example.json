@@ -13,9 +13,20 @@
     "上傳前以局部高斯模糊遮蓋臉部、姓名、證件等個資，預覽確認後再送出。"
   ],
   "criteria": [
-    {"id": "back_support", "requirement": "座椅有清楚可見、穩固且可實際提供背部支撐的椅背或靠墊；不能僅因有椅子就通過。"},
-    {"id": "privacy_curtain", "requirement": "窗簾已拉妥，能遮蔽需保護的區域；不能把有安裝窗簾等同已保護隱私。"}
+    {
+      "id": "back_support",
+      "requirement": "座椅有清楚可見、穩固且可實際提供背部支撐的椅背或靠墊；不能僅因有椅子就通過。"
+    },
+    {
+      "id": "privacy_curtain",
+      "requirement": "窗簾已拉妥，能遮蔽需保護的區域；不能把有安裝窗簾等同已保護隱私。"
+    }
   ],
   "review_policy": "逐項依結案照片的可見證據評估。任一項明確未符合為 no pass；無明確不符但有無法確認項目為 pending further review；全部符合才為 pass。技術失敗另列原因。",
-  "outcomes": ["pass", "no pass", "pending further review"]
+  "outcomes": [
+    "pass",
+    "no pass",
+    "pending further review"
+  ],
+  "example_url": "https://log-worker.99-cent-bagel.workers.dev/example.jpg"
 }

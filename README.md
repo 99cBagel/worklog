@@ -57,3 +57,9 @@ R2 `log-data` 必須有 `Example.json`。示範圖片先讀 `log-data/Example.jp
 GitHub Actions 從 `main` 部署，使用 GitHub Secrets `G_Deploy2026` 與 `G_account_id`。Cloudflare Worker 名稱維持 `log-worker`，MCP 路徑為 `/mcp`。
 
 執行 `npm run check` 進行語法及流程測試。
+
+## 正式示範圖片網址
+
+[Example.jpg](https://log-worker.99-cent-bagel.workers.dev/example.jpg)
+
+Agent 使用此網址展示示範圖片；AI 評估由服務端讀取同一來源。沿用既有 R2 圖片，不重新將圖片發佈至 GitHub。
