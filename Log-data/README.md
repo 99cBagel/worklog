@@ -1,11 +1,11 @@
-# Log-data (flat object layout)
+# Log-data
 
-This folder contains only **public example assets and redacted templates** for GitHub → R2 synchronization.
+本資料夾為 WorkLog 的公開教材與空白紀錄格式，GitHub Actions 同步到 R2 `log-data`，key 不含資料夾前綴。
 
-- `Example.jpg` — sample photo (upload separately)
-- `Example.json` — sample photo criteria
-- `log-template.json` — fictional placeholder only
+- 示範圖片：優先讀取 R2 `log-data/Example.jpg`；若不存在，讀取原有 R2 `ngo-data/IMG_1818.jpeg`，不複製圖片到本 repo。
+- `Example.json`：四個工作重點、逐項評估標準與三種結論。
+- `log-template.json`：空白格式，非真實工作紀錄。
 
-Real `0972020770-log.json` and `0972020770結案照片XXX.jpg` belong **only in private R2**, never GitHub. The phone number is an example of the naming pattern, not a committed record.
+真實電話、案件資料、結案照片與評估僅存私人 R2，不寫進 GitHub。每次報備使用獨立 UUID：`<UUID>.jpg`／`.png` 與 `<UUID>-log.json`，避免重複電話覆蓋舊案。收據僅查詢評估，不回傳電話或照片。服務未開放 R2 任意物件讀取。
 
-R2 keys are flat: `Example.jpg`, `Example.json`, etc., with no `Log-data/` prefix.
+`ngo-data` 是舊 NGO 專案的資料來源；WorkLog 維持使用獨立 `log-data` bucket，以唯讀 binding 存取原示範圖，不搬移或刪除舊資料。

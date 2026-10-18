@@ -36,13 +36,21 @@ MCP 服務端的 Cloudflare Worker 呼叫 Workers AI，讀取合規結案照片�
 
 本流程不引入 Bearer 或項目 API token，不要求設定相關憑證。
 
-以上為本項目的目標流程。此文件更新不代表執行程式已完成對齊。
+## 已實作流程（v0.3.0）
 
-## 現有實作與待對齊項目
+- `log_get_task` 回傳 MCP 圖片內容、完整圖片網址及四個工作重點；網頁表單也先展示圖片。
+- `log_identify` 檢查必填電話及案件代碼；不要求登入或另行取得憑證。
+- `log_prepare_upload` 提供欄位及照片處理指引。
+- `log_submit_photo` 直接提交電話、案件代碼、處理後照片與預覽／同意聲明。
+- `log_evaluate` 用報備收據查詢已保存的結論。
 
-目前 v0.2.0 提供 `log_get_task`、`log_identify`、`log_prepare_upload`、`log_submit_photo`、`log_evaluate`。現有流程仍使用一小時的內部 session capability；電話仍為選填，AI 失敗狀態仍為 `manual_review`。後續程式修改須對齊上述欄位與三種結論，並保留可辨識的技術失敗原因。
+`/form` 提供兩步驟操作、裝置上的局部高斯模糊、復原及預覽確認。匯出 canvas JPEG 不保留原圖 EXIF；相容不支援 canvas filter 的瀏覽器。支援 JPEG／PNG，提交上限 4 MiB。
 
-現有上傳支援 JPEG／PNG，最大 4 MiB，儲存於私人 R2。R2 需要 `Example.json` 與 `Example.jpg`；缺少示範圖片時無法進行圖片對比評估。現有服務依賴上傳者聲明已完成隱私處理。
+每次報備獨立保存，以 UUID 命名照片與紀錄，不覆蓋同電話的舊案。服務仍依賴上傳者確認隱私處理，並非自動驗證遮蔽效果。表單不會上傳原圖。
+
+AI 以原生 Workers AI 圖片輸入分別讀取示範與結案圖，逐項判定後由程式產生三種結論。技術失敗保留可辨識原因，不假稱完成評估。模型若尚未在 Cloudflare 帳戶取得使用權限，需管理者在 Cloudflare 完成設定；程式不自動代為接受模型條款。
+
+R2 `log-data` 必須有 `Example.json`。示範圖片先讀 `log-data/Example.jpg`，若不存在則透過 `NGO_DATA` binding 讀取原有 `ngo-data/IMG_1818.jpeg`；圖片不複製到 WorkLog GitHub repo。同步腳本檢查必要的工作標準檔案。
 
 ## 開發與部署
 

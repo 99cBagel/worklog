@@ -1,13 +1,15 @@
 {
-  "phone": "REPLACE_WITH_VERIFIED_PHONE",
+  "schema_version": "0.3.0",
+  "submission_id": "FICTIONAL_RECEIPT",
+  "phone": "WORKER_PHONE_REQUIRED",
+  "case_code": "CASE-001",
   "project_id": "ROOM-001",
-  "record": {
-    "status": "pending",
-    "created_at": null
-  },
+  "record": {"created_at": null},
   "completion": {
-    "status": "pending",
-    "review": null
+    "status": "pending further review",
+    "evaluation": null,
+    "consent_confirmed": false,
+    "privacy_processed_attested": false
   },
   "photos": []
 }

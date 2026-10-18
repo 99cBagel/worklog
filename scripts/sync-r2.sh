@@ -2,7 +2,9 @@
 set -euo pipefail
 SOURCE_DIR="Log-data"
 BUCKET="log-data"
-[[ -d "$SOURCE_DIR" ]] || { echo "No Log-data folder"; exit 0; }
+for required in Example.json; do
+  [[ -s "$SOURCE_DIR/$required" ]] || { echo "Missing required sample: $required"; exit 1; }
+done
 count=0
 while IFS= read -r -d '' file; do
   key="${file#"$SOURCE_DIR"/}"

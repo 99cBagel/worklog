@@ -5,6 +5,13 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: worklog-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -19,6 +26,11 @@ jobs:
         run: npm install --no-package-lock
       - name: Check JavaScript
         run: npm run check
+      - name: Sync required demonstration data before deployment
+        run: bash scripts/sync-r2.sh
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.G_Deploy2026 }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.G_account_id }}
       - name: Deploy to Cloudflare
         run: npx wrangler deploy
         env:

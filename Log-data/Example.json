@@ -1,16 +1,21 @@
 {
-  "example_image": "Example.jpg",
+  "schema_version": "0.3.0",
   "project_id": "ROOM-001",
-  "criteria": [
-    {
-      "id": "privacy_curtain",
-      "requirement": "Curtain provides visual privacy at the window"
-    },
-    {
-      "id": "back_support",
-      "requirement": "Chair has a visible usable backrest"
-    }
+  "title": "休憩空間：背部支撐與隱私窗簾",
+  "example_image": "Example.jpg",
+  "source_image": "r2://ngo-data/IMG_1818.jpeg",
+  "image_rights": "專案方擁有並授權使用",
+  "example_role": "教學示範；不代表現場已完成工作，仍應按工作要求逐項判定。",
+  "work_points": [
+    "確認座椅有穩固且可實際使用的椅背或靠墊，提供背部支撐。",
+    "確認窗簾已拉妥，能遮蔽需要保護的區域；不能只確認有安裝窗簾。",
+    "結案照片須看得清楚背部支撐與窗簾狀態；角度不足時請補拍。",
+    "上傳前以局部高斯模糊遮蓋臉部、姓名、證件等個資，預覽確認後再送出。"
   ],
-  "review_policy": "Check each item individually; unclear evidence requires manual review.",
-  "image_status": "awaiting_upload"
+  "criteria": [
+    {"id": "back_support", "requirement": "座椅有清楚可見、穩固且可實際提供背部支撐的椅背或靠墊；不能僅因有椅子就通過。"},
+    {"id": "privacy_curtain", "requirement": "窗簾已拉妥，能遮蔽需保護的區域；不能把有安裝窗簾等同已保護隱私。"}
+  ],
+  "review_policy": "逐項依結案照片的可見證據評估。任一項明確未符合為 no pass；無明確不符但有無法確認項目為 pending further review；全部符合才為 pass。技術失敗另列原因。",
+  "outcomes": ["pass", "no pass", "pending further review"]
 }

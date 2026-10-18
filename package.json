@@ -1,15 +1,14 @@
 {
   "name": "worklog-mcp",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
-    "check": "node --check src/index.js && node --check src/submission.js && node --test"
+    "check": "node --check src/index.js && node --check src/form.js && node --check src/task.js && node --check src/submission.js && node --check src/analysis/evaluate.js && node --test"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"
   }
 }
-
