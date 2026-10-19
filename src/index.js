@@ -1,7 +1,7 @@
 import {formPage} from './form.js';
 import {identify,prepareUpload,readEvaluation,submitAndEvaluate} from './submission.js';
 import {getTask,loadImage,encode} from './task.js';
-import {runPilotEvaluation} from './pilot.js';
+import {runPilotEvaluation,checkPilotAI} from './pilot.js';
 const VERSION='0.3.0';
 const HEADERS={'content-type':'application/json; charset=utf-8','cache-control':'no-store','access-control-allow-origin':'*','access-control-allow-methods':'GET, POST, OPTIONS','access-control-allow-headers':'content-type, mcp-protocol-version, mcp-session-id','x-content-type-options':'nosniff'};
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:HEADERS});
@@ -51,6 +51,7 @@ export default {async fetch(request,env){
  if(url.pathname==='/example.jpg'&&request.method==='GET'){
   try{const image=await loadImage(env,'Example.jpg');return new Response(image.bytes,{headers:{'content-type':image.mimeType,'cache-control':'no-cache','x-content-type-options':'nosniff'}});}catch{return json({error:'示範圖片尚未就緒。'},404);}
  }
+ if(url.pathname==='/pilot/ai-check'&&request.method==='POST')return json(await checkPilotAI(env));
  if(url.pathname==='/pilot/evaluate'&&request.method==='POST'){
   try{return json(await runPilotEvaluation(env));}catch{return json({status:'pending further review',error:'示範評估未完成。'},503);}
  }
