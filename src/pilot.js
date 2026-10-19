@@ -14,8 +14,6 @@ export async function checkPilotAI(env) {
   try {
     const image=await loadImage(env,'Example.jpg');
     stage='vision_call';
-    // One-time model activation explicitly authorized by the account owner on 2026-10-19.
-    await env.AI.run(MODEL,{prompt:'agree'});
     const out=await env.AI.run(MODEL,{prompt:'Describe this room in one sentence.',image:Array.from(image.bytes),max_tokens:60});
     return {ok:typeof out?.response==='string'&&!!out.response.trim(),stage,model:MODEL,response:typeof out?.response==='string'?out.response.slice(0,400):null};
   } catch(error) {
